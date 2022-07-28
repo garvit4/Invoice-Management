@@ -6,32 +6,28 @@ import { connectToDatabase } from "../lib/mongodb";
 import Table from '../components/Table';
 import { Dropdown } from 'primereact/dropdown';
 import Recipient from "../components/Recipient";
-// import EditDataTable from "../components/EditDataTable";
 import CrudTable from '../components/CrudTable'
 
 
 export default function form(props) {
-    console.log(props,"props")
-    const [customerSelected, setCustomerSelected] = useState("")
+  const [newInvoice, setNewInvoice] = useState(null);
+  const [customer, setCustomer] = useState(null);
+      const today = new Date()
       const allFields = [
         {
             name: "Invoice Number",
             key: 'invoiceNo',
             type: 'text',
-            value: 123
+            value: props.invoices.length
         }, 
         {
             name: "Invoice Date",
             key: 'invoiceDate',
             type: 'date',
-            value: '23/4/2022'
+            value: today.toLocaleDateString
         }
       ]
-    
-    function handleSubmit(e) {
-        console.log(e,"ee")
-    }
-    
+        
         return (
   <Layout>
             <div style={{ marginLeft: "165px" }}>
@@ -42,29 +38,23 @@ export default function form(props) {
                         <div>{props.companyInfo[0]['firm-address']}</div>
                         <div>consultingagency@consultingagency-email.com</div>
                     </div>
-                    <div>
-                        <form>
+                    <div style={{display:"flex", flexDirection:"column",justifyContent:"center"}}>
                              {allFields.map((item, index) => {
                                 return (
-                                    <div key={index}>
-                                        <label htmlFor="in">{item.name}</label>
-                                        <InputText id={item.key} name={item.key} type={item.type} onChange={(e)=>{item.value=e.target.value}}/>
+                                    <div style={{display:"flex", justifyContent:"space-between",alignItems:"center",padding:"3px"}} key={index}>
+                                        <label htmlFor="in" style={{padding:"10px"}}>{item.name}</label>
+                                        <InputText id={item.key} style={{maxWidth:"150px"}} name={item.key} value={item.value} type={item.type} onChange={(e)=>{item.value=e.target.value; console.log(e.target.value,"value for date")}}/>
                                     </div>
                                 )
                                 })}
-                        </form>
+                                    <Button style={{marginTop:"5px"}} label="CREATE" icon="pi pi-check" iconPos="right" /*onClick={{}} bigfetch ka logic*//>
                     </div>         
                 </div>
                 <hr/>
-                <div style={{ marginTop:"25px", display: "grid", gridTemplateRows: "30px 50px" }}>
-                        <div>TO</div>
-                        <Dropdown style={{width:"200px", hieght:"50px"}} value={customerSelected} optionLabel="client-name" options={props.customers} onChange={(e) => {setCustomerSelected(e.value); console.log(customerSelected,"customerSelected")}} placeholder="Select a customer"/>
-                    </div>
-                <Recipient customerSelected={customerSelected}/>    
                 {/* <Table invoices= {props.invoices}/> */}
                 {/* <EditDataTable invoices= {props.invoices} />
                  */}
-                <CrudTable invoices = {props.invoices}/>
+                <CrudTable invoices = {props.invoices} customers={props.customers} setCustomer={setCustomer} setNewInvoice={setNewInvoice}/>
             </div>
   </Layout>
         )

@@ -10,22 +10,54 @@ import { Toolbar } from 'primereact/toolbar';
 import { Dialog } from 'primereact/dialog';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Card } from 'primereact/card';
-
 function CrudTable(props) {
-
-    // empty Invoice
-    let emptyInvoice = 
-            {   "id":"",
+    let skeletalInvoice = {
+        "invoice-id": "",
+        "fr-recn": "",
+        "customer-id": "",
+        "sac": [
+            {
+                "998313": "Consulting and support services(Export Services)"
+            }
+        ],
+        "invoice-type": "Export",
+        "invoice-date": "",
+        "supply-place": "",
+        "invoice-details": [
+            {
                 "sr-no": "",
                 "description": "",
                 "quantity": "",
                 "rate": "",
-                "currency": 0,
+                "currency": "",
                 "value": ""
             }
-    
+        ],
+        "total-value": "110",
+        "discount": "",
+        "cgst": "",
+        "sgst": "",
+        "igst": "",
+        "ugst": "",
+        "cess": "",
+        "total-tax": "",
+        "invoice-value-str": "one hundred ten only"
+    }
+
+    // empty Invoice
+    let emptyInvoice =
+    {
+        "id": "",
+        "sr-no": "",
+        "description": "",
+        "quantity": "",
+        "rate": "",
+        "currency": 0,
+        "value": ""
+    }
 
     // states
+    const [completeInvoices, setCompleteInvoices] = useState([])
     const [invoices, setInvoices] = useState([]);
     const [invoiceDialog, setInvoiceDialog] = useState(false);
     const [deleteInvoiceDialog, setDeleteInvoiceDialog] = useState(false);
@@ -38,7 +70,34 @@ function CrudTable(props) {
     const toast = useRef(null);
     const dt = useRef(null);
 
+    // invoice date and number
+    const today = new Date();
+    let max = 0;
+    props.invoices.map((invoice) => invoice["invoice-id"] > max && (max = (invoice["invoice-id"] + 1)))
+    const allFields = [
+        {
+            name: "Invoice Number",
+            key: 'invoiceNo',
+            type: 'text',
+            value: max
+        },
+        {
+            name: "Invoice Date",
+            key: 'invoiceDate',
+            type: 'date',
+            value: today.toLocaleDateString
+        }
+    ]
+
+
     // functions
+    function fillClientIds() {
+        let customerId = customerSelected["client-id"];
+        let _completeInvoices = [...completeInvoices];
+        _completeInvoices.map(CI => CI["customer-id"] = customerId);
+        setCompleteInvoices(_completeInvoices)
+    }
+
     const openNew = () => {
         setInvoice(emptyInvoice);
         setSubmitted(false);
@@ -59,23 +118,28 @@ function CrudTable(props) {
     }
 
 
-
     const saveInvoice = () => {
         setSubmitted(true);
         let _invoice = { ...invoice };
-        let _invoices = [...invoices ];
+        let _invoices = [...invoices];
+        let _skeletalInvoice = skeletalInvoice
+        let _completeInvoices = [...completeInvoices];
         if (invoice.id) {
             const index = findIndexById(_invoice.id)
             _invoices[index] = _invoice;
+            _skeletalInvoice["invoice-details"][0] = _invoice;
+            _completeInvoices[index] = _skeletalInvoice
             toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Invoice Updated', life: 3000 });
         }
         else {
             _invoice.id = createId();
             _invoices.push(_invoice);
+            _skeletalInvoice["invoice-details"][0] = _invoice;
+            _completeInvoices.push(_skeletalInvoice);
             toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Invoice Created', life: 3000 });
         }
-        console.log(_invoices,"_invoices")
-        console.log(_invoice,"_invoice")
+        console.log(_invoices, "_invoices")
+        console.log(_invoice, "_invoice")
         setInvoices(_invoices)
         setInvoiceDialog(false);
         setInvoice(emptyInvoice);
@@ -111,7 +175,7 @@ function CrudTable(props) {
         }
         return index;
     }
- 
+
     const createId = () => {
         let id = '';
         let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -121,19 +185,6 @@ function CrudTable(props) {
         return id;
     }
 
-
-    // selected invoices only; can be deleted Together and these are the functions for it
-    const confirmDeleteSelected = () => {
-        setDeleteInvoicesDialog(true);
-    }
-
-    const deleteSelectedInvoices = () => {
-        let _invoices = invoices.filter(val => !selectedInvoices.includes(val));
-        setInvoices(_invoices);
-        setDeleteInvoicesDialog(false);
-        setSelectedInvoices(null);
-        toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Invoices Deleted', life: 3000 });
-    }
 
     const onInputChange = (e, name) => {
         const val = (e.target && e.target.value) || '';
@@ -146,7 +197,7 @@ function CrudTable(props) {
         const val = e.value || 0;
         let _invoice = { ...invoice };
         _invoice[`${name}`] = val;
-        _invoice.value = _invoice.quantity*_invoice.rate;
+        _invoice.value = _invoice.quantity * _invoice.rate;
 
 
         setInvoice(_invoice);
@@ -158,7 +209,7 @@ function CrudTable(props) {
         return (
             <React.Fragment>
                 <Button label="New" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                <Button label="Delete" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedInvoices || !selectedInvoices.length} />
+                <Button label="CREATE" icon="pi pi-check" iconPos="right" /*onClick={clickHandler}*/ /*bigfetch ka logic*/ />
             </React.Fragment>
         )
     }
@@ -173,17 +224,6 @@ function CrudTable(props) {
         );
     }
 
-    // header
-    const header = (
-        <div className="table-header">
-            <h5 className="mx-0 my-1">Invoice Manager</h5>
-            <span className="p-input-icon-left">
-                <i className="pi pi-search" />
-                <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Search..." />
-            </span>
-        </div>
-    );
-
     // Dialog footer
     const invoiceDialogFooter = (
         <React.Fragment>
@@ -197,22 +237,17 @@ function CrudTable(props) {
             <Button label="Yes" icon="pi pi-check" className="p-button-text" onClick={deleteInvoice} />
         </React.Fragment>
     );
-    const deleteInvoicesDialogFooter = (
-        <React.Fragment>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteInvoicesDialog} />
-            <Button label="Yes" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedInvoices} />
-        </React.Fragment>
-    );
 
-    const card =(
+
+    const card = (
         <React.Fragment>
-             <Card style={{display:`${customerSelected?"block":"none"}`}}
-                title={customerSelected?customerSelected["user-name"]:"no customer selected"}
-                subTitle={customerSelected&&customerSelected["client-name"]}>
-                {customerSelected&&customerSelected["address1"]} <br />
-                {customerSelected&&customerSelected["address2"]} <br />
-                billing type:{customerSelected&&customerSelected["billing-type"]}
-            </Card>  
+            <Card style={{ display: `${customerSelected ? "block" : "none"}` }}
+                title={customerSelected ? customerSelected["user-name"] : "no customer selected"}
+                subTitle={customerSelected && customerSelected["client-name"]}>
+                {customerSelected && customerSelected["address1"]} <br />
+                {customerSelected && customerSelected["address2"]} <br />
+                billing type:{customerSelected && customerSelected["billing-type"]}
+            </Card>
         </React.Fragment>
     )
 
@@ -232,21 +267,37 @@ function CrudTable(props) {
 
     return (
         <div>
-            <div className="field" style={{display:"grid", gridTemplate:"50px 50px 50px", gap:"3px"}}>
-                <label style={{marginLeft:"7px"}} htmlFor="customer"> Customer Details</label>
-                <Dropdown style={{ width: "200px", hieght: "50px" }} value={customerSelected} optionLabel="client-name" options={props.customers} onChange={(e) => { setCustomerSelected(e.value); console.log(customerSelected, "customerSelected by form in new button") }} placeholder="Select a customer" />
-                 {(customerSelected)?card:"NO CUSTOMER SELECTED"}        
+            <div style={{ display: "flex", justifyContent: "space-between" }} >
+                <div className="field" style={{ display: "grid", gridTemplate: "50px /100px 100px ", gap: "3px" }}>
+                    <label style={{ marginLeft: "7px" }} htmlFor="customer"> Customer Details</label>
+                    <Dropdown style={{ width: "300px", hieght: "50px" }} value={customerSelected} optionLabel="client-name"
+                        options={props.customers}
+                        onChange=
+                        {(e) => { setCustomerSelected(e.value, () => { skeletalInvoice['customer-id'] = customerSelected["client-id"]; fillClientIds() }); console.log(customerSelected, "customerSelected by form in new button") }} placeholder="Select a customer" />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                    {allFields.map((item, index) => {
+                        return (
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px" }} key={index}>
+                                <label htmlFor="in" style={{ padding: "10px" }}>{item.name}</label>
+                                <InputText id={item.key} style={{ maxWidth: "150px" }} name={item.key} value={item.value} type={item.type} onChange={(e) => { item.value = e.target.value; console.log(e.target.value, "value for date") }} />
+                            </div>
+                        )
+                    })}
+                </div>
             </div>
+            {(customerSelected) && card}
+
             <div className="datatable-crud-demo">
                 <Toast ref={toast} />
 
                 <div className="card">
                     <Toolbar className="mb-4" left={leftToolbarTemplate}></Toolbar>
 
-                    <DataTable ref={dt} value={invoices} selection={selectedInvoices} onSelectionChange={(e) => { setSelectedInvoices(e.value); console.log(e, "eee") }}
+                    <DataTable ref={dt} value={invoices}
                         dataKey="id"
-                        globalFilter={globalFilter} header={header} responsiveLayout="scroll">
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} exportable={false}></Column>
+                        responsiveLayout="scroll">
+                        <Column selectionMode="single" headerStyle={{ width: '3rem' }} exportable={false}></Column>
                         {dynamicColumns}
                         <Column body={actionBodyTemplate} exportable={false} style={{ minWidth: '8rem' }}></Column>
                     </DataTable>
@@ -279,13 +330,6 @@ function CrudTable(props) {
                     <div className="confirmation-content">
                         <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                         {invoice && <span>Are you sure you want to delete invoice number<b>{invoice['sr-no']}</b>?</span>}
-                    </div>
-                </Dialog>
-
-                <Dialog visible={deleteInvoicesDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteInvoicesDialogFooter} onHide={hideDeleteInvoicesDialog}>
-                    <div className="confirmation-content">
-                        <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                        {invoice && <span>Are you sure you want to delete the selected invoices?</span>}
                     </div>
                 </Dialog>
             </div>
